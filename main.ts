@@ -47,7 +47,7 @@ if (/[\u0000-\u001f\u007f]/.test(text)) {
 }
 
 mkdirSync("/output", { recursive: true });
-writeFileSync("/output/entry.txt", text, "utf8");
+writeFileSync("/output/entry.txt", text, { encoding: "utf8", mode: 0o644 });
 // The grader collects outputs as another user: leave the file readable by
 // everyone, or the run fails with "<path> is not readable".
 chmodSync("/output/entry.txt", 0o644);
@@ -58,4 +58,10 @@ chmodSync("/output/entry.txt", 0o644);
 const written = readFileSync("/output/entry.txt", "utf8");
 if (written !== text) {
   throw new Error("entry file does not match the gated line");
+}
+// Byte-length check: the gate counts characters, the judge reads bytes.
+// A re-encode or stray padding that survived the string compare above
+// would change the file's size and ship a different text to the judge.
+if (Buffer.byteLength(written, "utf8") !== Buffer.byteLength(text, "utf8")) {
+  throw new Error("entry file byte length does not match the gated line");
 }
